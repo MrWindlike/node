@@ -1,70 +1,117 @@
 const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
-const DB_CONN_STR = 'mongodb://localhost:27017/Wechat'; 
- 
-const insertData = function(collection, data, callback) {  
+const DB_CONN_STR = 'mongodb://admin:admin@localhost:27017/Wechat'; 
 
-    //插入数据
-    collection.insertOne(data, function(err, result) { 
-        if(err)
-        {
-            console.log('Error:'+ err);
-            return;
-        }     
-        callback(result);
-    });
+module.exports =  class Mongodb{
+    constructor(url){
+        this.url = url;
+    }
+
+    insertData(collect, data={}, callback=function(){}) { 
+        var _this = this; 
+        MongoClient.connect(_this.url, (err, db) => {
+            if(db){
+                db.collection(collect).insertOne(data, function(err, result) { 
+                    if(err)
+                    {
+                        console.log('Error:'+ err);
+                        return;
+                    }
+                    console.log('Insert Success');
+                    db.close();
+                    callback(result);
+                });
+            }
+            else
+                console.log(err);
+        });
+    }
+
+    async searchData({collect, data = {}, index = {}, limitNum = 0,skipNum = 0,callback = function(){}}) {
+        var _this = this;
+        //查询数据
+       await MongoClient.connect(_this.url, function(err, db){
+            if(db){
+                db.collection(collect).find(data, index).limit(limitNum).skip(skipNum).toArray(function(err, result) { 
+                    if(err)
+                    {
+                        console.log('Error:'+ err);
+                        return;
+                    }    
+                    console.log(result);
+                    db.close();
+                    callback(result);
+                });
+            }
+            else
+                console.log(err);
+        });
+    }
+
+    deleteData(collect, data={}, callback = function(){}){
+        var _this = this;
+        //删除数据
+        MongoClient.connect(_this.url, function(err, db){
+            if(db){
+                db.collection(collect).removeMany(data, function(err, result) { 
+                    if(err)
+                    {
+                        console.log('Error:'+ err);
+                        return;
+                    }    
+                    console.log('Delete Success');
+                    db.close();
+                    callback(result);
+                });
+            }
+            else
+                console.log(err);
+        });
+    }
+
+    updateData({collect, data={}, set={}, callback = function(){}}){
+        var _this = this;
+        //更新数据
+        MongoClient.connect(_this.url, function(err, db){
+            if(db){
+                db.collection(collect).updateOne(data, {$set:set},  function(err, result) { 
+                    if(err)
+                    {
+                        console.log('Error:'+ err);
+                        return;
+                    }    
+                    console.log('Update Success');
+                    db.close();
+                    callback(result);
+                });
+            }
+            else
+                console.log(err);
+        });
+    }
+
+    count(collect, data = {}, callback = function(){}){
+        var _this = this;
+        MongoClient.connect(_this.url, function(err, db){
+            db.collection(collect).count(data, function(err, count){
+                    if(err)
+                    {
+                        console.log('Error:'+ err);
+                        return;
+                    }   
+                    db.close();
+                    callback(count);
+            });
+        });
+    }
 }
 
-const searchData = function(collection, data, callback) {
+/*const Mongodb = require('./mongodb.js');
 
-    //查询数据
-    collection.find(data).toArray(function(err, result) { 
-        if(err)
-        {
-            console.log('Error:'+ err);
-            return;
-        }    
-        console.log(result);
-        //callback(result);
-    });
-}
+var db = new Mongodb(DB_CONN_STR);
+db.count('article',{},function(count){
+    db.updateData({collect:'Wechat', data:{name:'thisismissf'}, set:{num:count}});
+})*/
 
-const deleteData = function(collection, data, callback = function(){}){
-    //删除数据
-    collection.removeMany(data, function(err, result) { 
-        if(err)
-        {
-            console.log('Error:'+ err);
-            return;
-        }    
-        callback(result);
-    });
-}
 
-const updateData = function(collection, data, callback){
-    //删除数据
-    collection.updateOne(data, function(err, result) { 
-        if(err)
-        {
-            console.log('Error:'+ err);
-            return;
-        }    
-        console.log(result);
-        callback(result);
-    });
-}
- 
-MongoClient.connect(DB_CONN_STR, function(err, db) {
-    console.log("连接成功！");
-    const data = {'name': 'a'};
-    /*insertData(db.collection('Wechat'), data, function(result) {
-        console.log('插入成功!');
-        db.close();
-    });*/
-    //db.collection('Article').drop();
-    deleteData(db.collection('Wechat'), data);
-    searchData(db.collection('Wechat'), {}, function(result){
-        console.log(result);
-        db.close();
-    });
-});
+
